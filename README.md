@@ -1,4 +1,4 @@
-# Dynamo Soccer Club (DSC)
+# Dynamo Soccer Club (DSC)  
 MIST 4610 Project
 
 ## Team name and members:
