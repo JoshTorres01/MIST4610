@@ -3,7 +3,7 @@ MIST 4610 Project
 
 ## Team name and members:
 
-- Thai Le, Alvia Pham, Essex Glowaki, Kenneth Johnson, McKenna Sloan
+- Thai Le, Alvia Pham, Essex Glowaki, Kenneth Johnson, McKenna Sloan, Josh Torres
 
 
 ### Problem description:
@@ -13,7 +13,7 @@ DSC boasts three full-sized soccer fields, a training ground with fitness facili
 
 ## Data Model
 <img width="697" alt="image" src="https://github.com/thai-tran-le/mist4610/assets/148096037/6e125cf1-c5bd-44e5-8d04-b87965b080d2">
-Our team’s data model is based on the different stores Kroger has across the United States. Each store has many relationships with other entities in the table. For example, a store has many transactions, and in those transactions are many items. A store can also make multiple payments to one vendor, and each of those payments would have one invoice. Likewise, a store has many departments, and each of those departments also have relationships with other entities. More specifically, a department can have many inventories, and in each inventory is the quantity of an item (e.g. the Bakery department has cupcakes and cookies, and the quantity of those items are 100 and 50 (respectively)). A department also has many orders, and each order contains many items. Each order is made through one delivery and contains one invoice; however, a vendor can have multiple orders.
+Our team’s data model is based on the different segments of the Dynamo Soccer Club. Each segment has many relationships with other entities in the table. For example, a soccer tournament has many sponsors, and the sponsors can be associated with many teams. A tournament can also have many matches and each of those matches would have its own attributes associated with it. Likewise, a match has many relationships with other entities. More specifically, a match can have many staff associated with it such as ground staff and medical staff. Each member of the medical staff and grounds crew would have distinct characteristics tied to them. 
 
 
 ## Data Dictionary
@@ -60,25 +60,66 @@ Our team’s data model is based on the different stores Kroger has across the U
 
 6. This query provides a list of the medical staff members, their salaries, and the number of matches they've worked (including those who haven't worked any matches). This is relevant from a managerial perspective for evaluating staff performance and workload, and making informed decisions regarding medical staff compensation and assignments.
 
+SELECT medicalStaffName, medicalStaffSanlary, COUNT(idMatches)
+FROM MedicalStaff
+LEFT JOIN MedicalStaff_has_Matches ON MedicalStaff.idMedicalStaff = MedicalStaff_has_Matches.MedicalStaff_idMedicalStaff
+LEFT JOIN Matches ON Matches.idMatches= MedicalStaff_has_Matches.Matches_idMatches
+GROUP BY medicalStaffName, medicalStaffSalary
+ORDER BY medicalStaffSalary DESC;
+
 <img width="271" alt="image" src="https://github.com/thai-tran-le/mist4610/assets/148096037/25469683-dd78-42bc-8013-ec58d8d95713">
 
 
 7. This query calculates the average age of players for each team and categorizes them as "Young," "Average," or "Tenure," which is relevant from a managerial perspective to assess the overall age profile and experience level of each team's players, aiding in player recruitment and development. 
+
+
+SELECT Teams.teamName, 
+       ROUND(AVG(Players.playerAge), 2) AS AverageAge,
+       CASE
+           WHEN AVG(Players.playerAge) < 25 THEN 'Young'
+           WHEN AVG(Players.playerAge) BETWEEN 25 AND 30 THEN 'Average'
+           ELSE 'Tenure'
+       END AS AgeCategory
+FROM Teams 
+JOIN Players ON Teams.idTeams = Players.Teams_idTeams
+GROUP BY Teams.teamName;
 
 <img width="319" alt="image" src="https://github.com/thai-tran-le/mist4610/assets/148096037/1549f0f1-9596-4f8b-b423-0ee044afe4c4">
 
 
 8. This query lists each team’s name, the number of matches they’ve played, the number of adminstrative staff members they employ, and the average salary for the administrative staff. This is relevant from a manager’s perspective because it allows them to evaluate whether multiple administrative staff members are helpful/necessary, and whether they should be compensated differently depending on the amount of work they do.
 
+SELECT teamName, matchesPlayed, COUNT(DISTINCT idAdminStaff) AS "# Admin Staff", CONCAT("$", FORMAT(AVG(REPLACE(SUBSTRING_INDEX(adminStaffSalary, '$', -1), ",", "")), 2)) AS "Average Salary"
+FROM Teams
+JOIN AdminStaff ON Teams.idTeams = AdminStaff.Teams_idTeams
+GROUP BY teamName, matchesPlayed
+ORDER BY COUNT(DISTINCT idAdminStaff) DESC;
+
 <img width="473" alt="image" src="https://github.com/thai-tran-le/mist4610/assets/148096037/872f226d-5896-4afa-aae9-e6784a971f47">
 
 
 9. This query calculates and provides each team's average number of red and yellow cards per game, offering valuable insights from a managerial perspective to assess and address player discipline, which is important for aiding in team management and game strategies.
 
+SELECT teamName, ROUND(AVG(redCards),2) AS "Avg Redcards per Game", ROUND(AVG(yellowCards),2) AS "Avg Yellowcards per Game"
+FROM Matches
+JOIN Tournaments ON Tournaments.idTournaments = Matches.Tournaments_idTournaments
+JOIN Tournaments_has_Sponsors ON Tournaments_has_Sponsors.Tournaments_idTournaments = Tournaments.idTournaments
+JOIN Sponsors ON Tournaments_has_Sponsors.Sponsors_idSponsors = Sponsors.idSponsors
+JOIN Sponsors_has_Teams ON Sponsors_has_Teams.Sponsors_idSponsors = Sponsors.idSponsors
+JOIN Teams ON Teams.idTeams = Sponsors_has_Teams.Teams_idTeams
+GROUP BY teamName
+ORDER BY ROUND(AVG(redCards),2) DESC, ROUND(AVG(yellowCards),2) DESC;
+
 <img width="530" alt="image" src="https://github.com/thai-tran-le/mist4610/assets/148096037/23529b6f-6e08-47e1-982c-3322fdf82550">
 
 
 10. This query provides a list of team names, player names, and player ages for players who are older than the average player age within their respective teams. This is relevant from a managerial perspective because it allows managers to identify players who might be retiring soon, so they can plan for replacements and contract management.
+
+SELECT Teams.teamName, playerName, playerAge
+FROM Teams 
+JOIN Players ON Teams.idTeams = Players.Teams_idTeams
+WHERE playerAge > (SELECT AVG(playerAge) FROM Players WHERE Teams.idTeams = Players.Teams_idTeams);
+
 <img width="298" alt="image" src="https://github.com/thai-tran-le/mist4610/assets/148096037/ff9b011e-a33f-41da-947d-99635c871526">
 
 
